@@ -2,6 +2,8 @@
 const { Scenes, Markup } = require('telegraf')
 const db = require('../../services/db')
 const { SECTORS, EXPERIENCE_LEVELS, GENDERS } = require('../../utils/constants')
+const approvalHandler = require('../handlers/approvalHandler')
+const { RESTRICTED_PROFILE_FIELDS } = require('../../utils/constants')
 
 // Step 1: Choose Sector
 const stepSector = async (ctx) => {
@@ -79,6 +81,31 @@ const stepSave = async (ctx) => {
 
   let profile = await db.Profile.findOne({ user: user._id })
   if (!profile) profile = new db.Profile({ user: user._id })
+
+  // Check for restricted field changes
+  let restrictedChanged = false
+  for (const field of RESTRICTED_PROFILE_FIELDS) {
+    if (profile[field] && profile[field] !== ctx.wizard.state[field]) {
+      restrictedChanged = true
+      break
+    }
+  }
+
+  if (restrictedChanged) {
+    // Route to approvalHandler for admin approval
+    await approvalHandler.sendProfileApprovalRequest({
+      userId: user._id,
+      username: user.username,
+      changes: {
+        sector: ctx.wizard.state.sector,
+        experience: ctx.wizard.state.experience,
+        gender: ctx.wizard.state.gender,
+        age: ctx.wizard.state.age
+      }
+    })
+    await ctx.replyWithHTML('⏳ <b>Waiting for admin approval!</b>\nYour profile changes will be applied after review.')
+    return ctx.scene.leave()
+  }
 
   profile.sector = ctx.wizard.state.sector
   profile.experience = ctx.wizard.state.experience

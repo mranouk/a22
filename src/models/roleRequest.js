@@ -24,6 +24,9 @@ const RoleRequestSchema = new mongoose.Schema({
   payload: {
     type: Object // e.g., requested roleKey, or profile/update data, listing info
   },
+  changes: {
+    type: Object // For profile change requests: { sector, experience, gender, age }
+  },
   logs: [
     {
       at: { type: Date, default: Date.now },
