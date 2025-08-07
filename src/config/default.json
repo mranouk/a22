@@ -1,0 +1,134 @@
+{
+  "telegram": {
+    "token": "${BOT_TOKEN}",
+    "username": "${BOT_USERNAME}",
+    "webhookUrl": "",
+    "maxConnections": 40,
+    "allowedUpdates": ["message", "callback_query", "inline_query"]
+  },
+  "database": {
+    "uri": "${MONGODB_URI}",
+    "name": "${DB_NAME}",
+    "options": {
+      "useNewUrlParser": true,
+      "useUnifiedTopology": true,
+      "serverSelectionTimeoutMS": 5000,
+      "maxPoolSize": 10
+    }
+  },
+  "admin": {
+    "ids": "${ADMIN_IDS}",
+    "permissions": {
+      "approve_roles": true,
+      "approve_profiles": true,
+      "approve_listings": true,
+      "broadcast_messages": true,
+      "view_audit_logs": true,
+      "manage_users": true
+    }
+  },
+  "features": {
+    "referrals": {
+      "enabled": true,
+      "bonus": "${REFERRAL_BONUS}",
+      "maxLevels": 3
+    },
+    "trustScore": {
+      "initial": "${TRUST_SCORE_INITIAL}",
+      "maxScore": 1000,
+      "badgeThresholds": {
+        "bronze": 100,
+        "silver": 300,
+        "gold": 600,
+        "platinum": 900
+      }
+    },
+    "boost": {
+      "enabled": true,
+      "costUSD": "${BOOST_COST_USD}",
+      "durationHours": 24,
+      "maxActiveBoosts": 3
+    },
+    "premium": {
+      "enabled": true,
+      "costUSD": "${PREMIUM_COST_USD}",
+      "durationDays": 30,
+      "benefits": [
+        "priority_support",
+        "advanced_analytics",
+        "unlimited_listings",
+        "priority_listing_display"
+      ]
+    },
+    "escrow": {
+      "enabled": true,
+      "feePercent": 2.5,
+      "timeoutDays": 7,
+      "disputeTimeoutDays": 3
+    }
+  },
+  "crypto": {
+    "network": "${CRYPTO_NETWORK}",
+    "rpcUrl": "${CRYPTO_RPC_URL}",
+    "escrowWallet": {
+      "privateKey": "${ESCROW_WALLET_PRIVATE_KEY}"
+    },
+    "supportedTokens": [
+      {
+        "symbol": "ETH",
+        "name": "Ethereum",
+        "decimals": 18,
+        "address": "0x0000000000000000000000000000000000000000"
+      },
+      {
+        "symbol": "USDT",
+        "name": "Tether USD",
+        "decimals": 6,
+        "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+      }
+    ]
+  },
+  "security": {
+    "jwtSecret": "${JWT_SECRET}",
+    "encryptionKey": "${ENCRYPTION_KEY}",
+    "sessionTTL": "${SESSION_TTL}",
+    "maxLoginAttempts": 5,
+    "lockoutDuration": 900000
+  },
+  "rateLimiting": {
+    "window": "${RATE_LIMIT_WINDOW}",
+    "max": "${RATE_LIMIT_MAX}",
+    "skipSuccessfulRequests": false,
+    "skipFailedRequests": false
+  },
+  "logging": {
+    "level": "${LOG_LEVEL}",
+    "file": "${LOG_FILE}",
+    "maxSize": "10m",
+    "maxFiles": "5d",
+    "datePattern": "YYYY-MM-DD"
+  },
+  "pagination": {
+    "defaultLimit": 10,
+    "maxLimit": 50
+  },
+  "validation": {
+    "username": {
+      "minLength": 3,
+      "maxLength": 32,
+      "pattern": "^[a-zA-Z0-9_]+$"
+    },
+    "listing": {
+      "titleMinLength": 5,
+      "titleMaxLength": 100,
+      "descriptionMinLength": 20,
+      "descriptionMaxLength": 1000,
+      "priceMin": 0.01,
+      "priceMax": 1000000
+    },
+    "profile": {
+      "ageMin": 18,
+      "ageMax": 100
+    }
+  }
+}

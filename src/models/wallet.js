@@ -1,10 +1,15 @@
 // src/models/wallet.js
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
 const TransactionSchema = new mongoose.Schema({
-  txid: String,          // Blockchain transaction ID, if on-chain
-  type: {                // deposit, withdrawal, escrow, etc.
+  id: {
     type: String,
+    required: true,
+    unique: true
+  },
+  type: {
+    type: String,
+    enum: ['deposit', 'withdrawal', 'transfer_in', 'transfer_out', 'escrow_created', 'escrow_released', 'escrow_received', 'stars_deposit', 'boost_purchase', 'premium_purchase'],
     required: true
   },
   amount: {
@@ -13,40 +18,98 @@ const TransactionSchema = new mongoose.Schema({
   },
   currency: {
     type: String,
+    enum: ['USD', 'XTR'], // XTR = Telegram Stars
+    default: 'USD',
     required: true
   },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'failed'],
+    enum: ['pending', 'completed', 'failed', 'cancelled'],
     required: true
   },
-  to: String,            // Target address or user
-  from: String,          // Source address or user
-  meta: Object,          // Any extra info (escrow ID, notes, etc.)
+  paymentId: String,        // Telegram payment ID
+  escrowId: String,         // For escrow transactions
+  fromUserId: mongoose.Schema.Types.ObjectId,
+  toUserId: mongoose.Schema.Types.ObjectId,
+  orderId: String,          // Marketplace order ID
+  description: String,
+  metadata: Object,         // Additional data
   createdAt: {
     type: Date,
     default: Date.now
   }
-})
+});
 
-const WalletSchema = new mongoose.Schema({
+const PendingPaymentSchema = new mongoose.Schema({
   id: {
+    type: String,
+    required: true
+  },
+  type: {
+    type: String,
+    enum: ['deposit', 'stars_deposit', 'boost_purchase', 'premium_purchase', 'marketplace_purchase'],
+    required: true
+  },
+  amount: {
+    type: Number,
+    required: true
+  },
+  currency: {
+    type: String,
+    enum: ['USD', 'XTR'],
+    required: true
+  },
+  payload: {
     type: String,
     required: true,
     unique: true
   },
+  status: {
+    type: String,
+    enum: ['pending', 'completed', 'cancelled', 'expired'],
+    default: 'pending'
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  expiresAt: {
+    type: Date,
+    required: true
+  },
+  completedAt: Date,
+  cancelledAt: Date
+});
+
+const WalletSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
     unique: true
   },
-  cryptoBalances: {
-    // Each key is a currency code, e.g., { BTC: 0.1, ETH: 3.5 }
-    type: Object,
-    default: {}
+  balance: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  starBalance: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  escrowBalance: {
+    type: Number,
+    default: 0,
+    min: 0
   },
   transactions: [TransactionSchema],
+  pendingPayments: [PendingPaymentSchema],
+  status: {
+    type: String,
+    enum: ['active', 'suspended', 'frozen'],
+    default: 'active'
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -55,6 +118,39 @@ const WalletSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-}, { timestamps: true })
+});
 
-module.exports = mongoose.model('Wallet', WalletSchema)
+// Update the updatedAt field before saving
+WalletSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+// Virtual for total available balance
+WalletSchema.virtual('totalBalance').get(function() {
+  return this.balance + this.escrowBalance;
+});
+
+// Methods
+WalletSchema.methods.addTransaction = function(transactionData) {
+  this.transactions.push(transactionData);
+  return this.save();
+};
+
+WalletSchema.methods.addPendingPayment = function(paymentData) {
+  this.pendingPayments.push(paymentData);
+  return this.save();
+};
+
+WalletSchema.methods.hasBalance = function(amount) {
+  return this.balance >= amount;
+};
+
+WalletSchema.methods.getRecentTransactions = function(limit = 10) {
+  return this.transactions
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, limit);
+};
+
+module.exports = mongoose.model('Wallet', WalletSchema);
+

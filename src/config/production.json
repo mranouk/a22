@@ -1,0 +1,25 @@
+{
+  "logging": {
+    "level": "info",
+    "file": "logs/production.log"
+  },
+  "security": {
+    "sessionTTL": 3600
+  },
+  "rateLimiting": {
+    "max": 50
+  },
+  "telegram": {
+    "webhookUrl": "https://your-domain.com/webhook"
+  },
+  "database": {
+    "options": {
+      "useNewUrlParser": true,
+      "useUnifiedTopology": true,
+      "serverSelectionTimeoutMS": 5000,
+      "maxPoolSize": 20,
+      "retryWrites": true,
+      "w": "majority"
+    }
+  }
+}
