@@ -1,14 +1,14 @@
 {
   "telegram": {
-    "token": "${BOT_TOKEN}",
-    "username": "${BOT_USERNAME}",
+    "token": "7602216992:AAFe5yVwwf0QCe60vg_u5L8mYyLNC8C-BwY",
+    "username": "NDA_Telegram_bot",
     "webhookUrl": "",
     "maxConnections": 40,
     "allowedUpdates": ["message", "callback_query", "inline_query"]
   },
   "database": {
-    "uri": "${MONGODB_URI}",
-    "name": "${DB_NAME}",
+    "uri": "mongodb+srv://zaravipbot:ZaraVIPBot1324@zaravipbot.lwseqwn.mongodb.net/?retryWrites=true&w=majority&appName=ZaraVIPBot",
+    "name": "NDABOT",
     "options": {
       "useNewUrlParser": true,
       "useUnifiedTopology": true,
@@ -17,7 +17,7 @@
     }
   },
   "admin": {
-    "ids": "${ADMIN_IDS}",
+    "ids": "5116809748",
     "permissions": {
       "approve_roles": true,
       "approve_profiles": true,
@@ -30,11 +30,11 @@
   "features": {
     "referrals": {
       "enabled": true,
-      "bonus": "${REFERRAL_BONUS}",
+      "bonus": 10,
       "maxLevels": 3
     },
     "trustScore": {
-      "initial": "${TRUST_SCORE_INITIAL}",
+      "initial": 100,
       "maxScore": 1000,
       "badgeThresholds": {
         "bronze": 100,
@@ -45,13 +45,13 @@
     },
     "boost": {
       "enabled": true,
-      "costUSD": "${BOOST_COST_USD}",
+      "costUSD": 5,
       "durationHours": 24,
       "maxActiveBoosts": 3
     },
     "premium": {
       "enabled": true,
-      "costUSD": "${PREMIUM_COST_USD}",
+      "costUSD": 20,
       "durationDays": 30,
       "benefits": [
         "priority_support",
@@ -68,10 +68,10 @@
     }
   },
   "crypto": {
-    "network": "${CRYPTO_NETWORK}",
-    "rpcUrl": "${CRYPTO_RPC_URL}",
+    "network": "",
+    "rpcUrl": "",
     "escrowWallet": {
-      "privateKey": "${ESCROW_WALLET_PRIVATE_KEY}"
+      "privateKey": ""
     },
     "supportedTokens": [
       {
@@ -89,21 +89,21 @@
     ]
   },
   "security": {
-    "jwtSecret": "${JWT_SECRET}",
-    "encryptionKey": "${ENCRYPTION_KEY}",
-    "sessionTTL": "${SESSION_TTL}",
+    "jwtSecret": "your_jwt_secret_here",
+    "encryptionKey": "your_encryption_key_here",
+    "sessionTTL": 3600,
     "maxLoginAttempts": 5,
     "lockoutDuration": 900000
   },
   "rateLimiting": {
-    "window": "${RATE_LIMIT_WINDOW}",
-    "max": "${RATE_LIMIT_MAX}",
+    "window": 900000,
+    "max": 100,
     "skipSuccessfulRequests": false,
     "skipFailedRequests": false
   },
   "logging": {
-    "level": "${LOG_LEVEL}",
-    "file": "${LOG_FILE}",
+    "level": "info",
+    "file": "logs/app.log",
     "maxSize": "10m",
     "maxFiles": "5d",
     "datePattern": "YYYY-MM-DD"
