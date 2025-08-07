@@ -61,40 +61,56 @@ const stepAge = async (ctx) => {
   ctx.wizard.next()
 }
 
-// Step 5: Save profile to DB
-const stepSave = async (ctx) => {
+// Step 5: Optional Referral Code
+const stepReferral = async (ctx) => {
   let age = parseInt(ctx.message?.text, 10)
   if (!age || age < 13 || age > 100) {
     await ctx.replyWithHTML('⛔️ Enter a valid age (13-100).')
     return // Stay in this step
   }
   ctx.wizard.state.age = age
+  await ctx.replyWithHTML(
+    '🤝 <b>Referral Code</b> (optional)\n\nIf you have a referral code, enter it now.\nOr tap <b>Skip</b> if you don\'t have one.',
+    Markup.inlineKeyboard([
+      [Markup.button.callback('⏭️ Skip', 'PW_SKIP_REFERRAL')]
+    ])
+  )
+  ctx.wizard.next()
+}
 
+// Step 6: Save profile to DB
+const stepSave = async (ctx) => {
+  let referralCode = null
+  if (ctx.callbackQuery && ctx.callbackQuery.data === 'PW_SKIP_REFERRAL') {
+    referralCode = null
+  } else if (ctx.message && ctx.message.text) {
+    referralCode = ctx.message.text.trim()
+    if (referralCode.length > 32) {
+      await ctx.replyWithHTML('⛔️ Referral code too long. Please enter a valid code or tap Skip.')
+      return
+    }
+  }
   // Save profile in DB
   const user = await db.User.findOne({ tgid: ctx.from.id })
   if (!user) {
     await ctx.replyWithHTML('⛔️ User not found. Please /start again.')
     return ctx.scene.leave()
   }
-
   let profile = await db.Profile.findOne({ user: user._id })
   if (!profile) profile = new db.Profile({ user: user._id })
-
   profile.sector = ctx.wizard.state.sector
   profile.experience = ctx.wizard.state.experience
   profile.gender = ctx.wizard.state.gender
   profile.age = ctx.wizard.state.age
+  if (referralCode) profile.referralCode = referralCode
   await profile.save()
-
   await ctx.replyWithHTML(
     `✅ <b>Profile completed!</b>\n` +
     `Admins can now approve your role request (if not done already).`
   )
-  // Suggest next steps
   await ctx.replyWithHTML(
     'You can /profile to view or edit your info at any time.'
   )
-
   return ctx.scene.leave()
 }
 
@@ -104,6 +120,7 @@ const profileWizard = new Scenes.WizardScene(
   stepExperience,
   stepGender,
   stepAge,
+  stepReferral,
   stepSave
 )
 
