@@ -505,6 +505,38 @@ class WalletService {
             throw error;
         }
     }
+
+    // Request withdrawal (for user or system)
+    async requestWithdrawal(userId, { amount, currency = 'USDT', to }) {
+        try {
+            const wallet = await this.getOrCreateWallet(userId);
+            if (wallet.balance < amount) {
+                throw new Error('Insufficient balance');
+            }
+            wallet.balance -= amount;
+            wallet.transactions.push({
+                id: uuidv4(),
+                type: 'withdrawal',
+                amount: -amount,
+                currency,
+                status: 'pending',
+                to,
+                description: to === 'system-boost' ? 'Boost purchase' : `Withdrawal to ${to}`,
+                createdAt: new Date()
+            });
+            await wallet.save();
+            // Notify user
+            await notificationService.sendNotification(userId, {
+                type: 'withdrawal',
+                title: '💸 Withdrawal Requested',
+                message: `Your withdrawal of ${amount} ${currency} to ${to} is being processed.`
+            });
+            return { success: true };
+        } catch (error) {
+            logger.error('Failed to request withdrawal', error, { userId, amount, to });
+            throw error;
+        }
+    }
 }
 
 module.exports = new WalletService();
