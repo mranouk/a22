@@ -1,12 +1,8 @@
 const { Telegraf, Scenes, session } = require('telegraf');
-const config = require('config');
 const logger = require('../utils/logger');
-const cryptoUtils = require('../utils/cryptoUtils');
-const walletService = require('../services/walletService');
 
 // Middlewares
 const auth = require('./middlewares/auth');
-const rateLimitMiddleware = require('./middlewares/rateLimiter');
 const roleGuard = require('./middlewares/roleGuard');
 
 // Commands
@@ -28,10 +24,7 @@ const approvalHandler = require('./handlers/approvalHandler');
 const roleSelectHandler = require('./handlers/roleSelectHandler');
 const notificationsHandler = require('./handlers/notificationsHandler');
 
-// Scenes
-const scenes = require('./scenes');
-
-class TelegramBot {
+class Bot {
     constructor() {
         this.bot = null;
         this.stage = null;
@@ -40,24 +33,24 @@ class TelegramBot {
 
     async initialize() {
         try {
-            // Create bot instance
-            this.bot = new Telegraf(config.get('telegram.token'));
+            // Create bot instance using .env variable
+            this.bot = new Telegraf(process.env.BOT_TOKEN);
 
             // Create scene stage
             this.stage = new Scenes.Stage();
-            
+
             // Register scenes
             this.registerScenes();
-            
+
             // Setup middlewares
             this.setupMiddlewares();
-            
+
             // Setup commands
             this.setupCommands();
-            
+
             // Setup callback query handlers
             this.setupCallbackHandlers();
-            
+
             // Setup error handling
             this.setupErrorHandling();
 
@@ -72,7 +65,7 @@ class TelegramBot {
     registerScenes() {
         try {
             // Register all scenes from scenes directory
-            Object.values(scenes).forEach(scene => {
+            Object.values(require('./scenes')).forEach(scene => {
                 if (scene && typeof scene.enter === 'function') {
                     this.stage.register(scene);
                 }
@@ -101,9 +94,6 @@ class TelegramBot {
 
             // Auth middleware - ensures user exists in database
             this.bot.use(auth.ensureUser());
-
-            // Rate limiting middleware
-            this.bot.use(rateLimitMiddleware.general('api_call'));
 
             logger.info('Middlewares setup completed');
         } catch (error) {
@@ -191,7 +181,6 @@ class TelegramBot {
                 await walletCommand.showMainMenu(ctx);
             });
 
-            // Boost handlers
             this.bot.action('boost_main', async (ctx) => {
                 await boostCommand.showMainMenu(ctx);
             });
@@ -260,7 +249,6 @@ class TelegramBot {
                 await ctx.scene.enter('walletWizard', { action: 'withdraw' });
             });
 
-            // Wallet deposit handlers
             this.bot.action('wallet_deposit', async (ctx) => {
                 await walletCommand.showDepositMenu(ctx);
             });
@@ -286,10 +274,6 @@ class TelegramBot {
             this.bot.action(/^wallet_history_(\d+)$/, async (ctx) => {
                 const page = parseInt(ctx.match[1]);
                 await walletCommand.showTransactionHistory(ctx, page);
-            });
-
-            this.bot.action('wallet_escrow', async (ctx) => {
-                await walletCommand.showEscrowStatus(ctx);
             });
 
             // Referral handlers
@@ -326,7 +310,6 @@ class TelegramBot {
                 await referralCommand.showHelp(ctx);
             });
 
-            // Boost handlers continued
             this.bot.action(/^boost_buy_package_(.+)$/, async (ctx) => {
                 const packageId = ctx.match[1];
                 await boostCommand.confirmPurchase(ctx, packageId, null, 'profile');
@@ -342,12 +325,12 @@ class TelegramBot {
                 await ctx.scene.enter('listingWizard');
             });
 
-            // Payment handlers
+            // Payment handlers (Telegram payment only)
             this.bot.on('successful_payment', async (ctx) => {
                 try {
                     const payment = ctx.message.successful_payment;
-                    const result = await walletService.processPayment(payment);
-                    
+                    const result = await walletCommand.processTelegramPayment(payment);
+
                     if (result.success) {
                         await ctx.reply(
                             '🎉 <b>Payment Successful!</b>\n\n' +
@@ -356,8 +339,6 @@ class TelegramBot {
                             '✅ Your wallet has been updated.',
                             { parse_mode: 'HTML' }
                         );
-                        
-                        // Show updated wallet
                         await walletCommand.showMainMenu(ctx);
                     } else {
                         await ctx.reply(
@@ -378,18 +359,11 @@ class TelegramBot {
             this.bot.on('pre_checkout_query', async (ctx) => {
                 try {
                     const query = ctx.preCheckoutQuery;
-                    
-                    // Validate the payment
-                    const validation = cryptoUtils.validateTelegramPayment({
-                        invoice_payload: query.invoice_payload,
-                        total_amount: query.total_amount,
-                        currency: query.currency
-                    });
-
-                    if (validation.valid) {
+                    // Validate payment structure
+                    if (query.invoice_payload && query.total_amount > 0 && query.currency) {
                         await ctx.answerPreCheckoutQuery(true);
                     } else {
-                        await ctx.answerPreCheckoutQuery(false, validation.error);
+                        await ctx.answerPreCheckoutQuery(false, 'Payment validation failed');
                     }
                 } catch (error) {
                     logger.error('Pre-checkout query error', error);
@@ -418,14 +392,12 @@ class TelegramBot {
                     message: ctx.message?.text
                 });
 
-                // Send user-friendly error message
                 ctx.reply(
                     '❌ <b>Oops! Something went wrong</b>\n\n' +
                     '🔧 Our team has been notified and will fix this soon.\n\n' +
                     '💡 Please try again in a few moments.',
                     { parse_mode: 'HTML' }
                 ).catch(() => {
-                    // If even the error message fails, log it
                     logger.error('Failed to send error message to user', { userId: ctx.from?.id });
                 });
             });
@@ -440,7 +412,7 @@ class TelegramBot {
     async showMainMenu(ctx) {
         try {
             const user = ctx.user;
-            
+
             if (!user) {
                 await startCommand.handle(ctx);
                 return;
@@ -488,7 +460,7 @@ class TelegramBot {
             message += `${roleEmoji} Welcome back, <b>${user.firstName || user.username}</b>! ${premiumBadge}\n\n`;
             message += `📋 <b>Role:</b> ${user.role?.charAt(0).toUpperCase() + user.role?.slice(1)}\n`;
             message += `⭐ <b>Trust Score:</b> ${user.trustScore || 100}\n`;
-            
+
             if (user.referralCode) {
                 message += `🔗 <b>Referral Code:</b> <code>${user.referralCode}</code>\n`;
             }
@@ -599,10 +571,10 @@ class TelegramBot {
 
             await this.bot.launch();
             logger.info('Telegram bot started successfully');
-            
+
             // Set bot commands
             await this.setBotCommands();
-            
+
         } catch (error) {
             logger.error('Failed to start Telegram bot', error);
             throw error;
@@ -642,4 +614,4 @@ class TelegramBot {
     }
 }
 
-module.exports = new TelegramBot();
+module.exports = Bot;

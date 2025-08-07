@@ -9,7 +9,7 @@ const TransactionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['deposit', 'withdrawal', 'transfer_in', 'transfer_out', 'escrow_created', 'escrow_released', 'escrow_received', 'stars_deposit', 'boost_purchase', 'premium_purchase'],
+    enum: ['deposit', 'withdrawal', 'transfer_in', 'transfer_out', 'stars_deposit', 'boost_purchase', 'premium_purchase'],
     required: true
   },
   amount: {
@@ -28,7 +28,6 @@ const TransactionSchema = new mongoose.Schema({
     required: true
   },
   paymentId: String,        // Telegram payment ID
-  escrowId: String,         // For escrow transactions
   fromUserId: mongoose.Schema.Types.ObjectId,
   toUserId: mongoose.Schema.Types.ObjectId,
   orderId: String,          // Marketplace order ID
@@ -98,11 +97,6 @@ const WalletSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-  escrowBalance: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
   transactions: [TransactionSchema],
   pendingPayments: [PendingPaymentSchema],
   status: {
@@ -128,7 +122,7 @@ WalletSchema.pre('save', function(next) {
 
 // Virtual for total available balance
 WalletSchema.virtual('totalBalance').get(function() {
-  return this.balance + this.escrowBalance;
+  return this.balance;
 });
 
 // Methods
@@ -137,20 +131,4 @@ WalletSchema.methods.addTransaction = function(transactionData) {
   return this.save();
 };
 
-WalletSchema.methods.addPendingPayment = function(paymentData) {
-  this.pendingPayments.push(paymentData);
-  return this.save();
-};
-
-WalletSchema.methods.hasBalance = function(amount) {
-  return this.balance >= amount;
-};
-
-WalletSchema.methods.getRecentTransactions = function(limit = 10) {
-  return this.transactions
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(0, limit);
-};
-
 module.exports = mongoose.model('Wallet', WalletSchema);
-
