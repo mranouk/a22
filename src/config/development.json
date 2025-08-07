@@ -1,6 +1,6 @@
 {
   "database": {
-    "uri": "mongodb://localhost:27017/telegram_marketplace_dev",
+    "uri": "mongodb+srv://zaravipbot:ZaraVIPBot1324@zaravipbot.lwseqwn.mongodb.net/?retryWrites=true&w=majority&appName=ZaraVIPBot",
     "name": "telegram_marketplace_dev"
   },
   "logging": {

@@ -3,7 +3,7 @@ const Telegraf = require('telegraf')
 const config = require('../config/default.json')
 
 // Make sure you initialize and export a singleton bot instance
-const bot = require('../botInstance') // Assume this module exports your single Telegraf instance
+// const bot = require('../botInstance') // Assume this module exports your single Telegraf instance
 
 /**
  * Send a message to a given Telegram user ID with HTML parse and emoji.
