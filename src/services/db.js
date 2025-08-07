@@ -1,18 +1,16 @@
 // src/services/db.js
 const mongoose = require('mongoose')
-const config = require('../config/default.json')
 
 // Import all data models
 const User = require('../models/user')
 const Profile = require('../models/profile')
 const RoleRequest = require('../models/roleRequest')
-// Import other models as you create them:
-// const Listing = require('../models/listing')
-// const Wallet = require('../models/wallet')
-// etc.
+const Listing = require('../models/listing')
+const Wallet = require('../models/wallet')
+const TrustScore = require('../models/trustScore')
 
-// Mongoose Connection
-mongoose.connect(config.mongoUri, {
+// Mongoose Connection using .env variable
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
@@ -32,7 +30,8 @@ module.exports = {
   User,
   Profile,
   RoleRequest,
-  // Listing,
-  // Wallet,
-  // ...etc (add models as you implement them)
+  Listing,
+  Wallet,
+  TrustScore,
+  Escrow
 }
