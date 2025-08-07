@@ -79,3 +79,25 @@ exports.rejectRequest = async ({ reqType, reqId, adminId, reason }) => {
   // Optionally log action via audit service
   await adminService.logApprovalAction({ reqType, reqId, adminId, action: 'reject', reason })
 }
+
+/**
+ * Sends approval request to an admin for profile changes.
+ * Options must include userId, username, and changes object.
+ */
+exports.sendProfileApprovalRequest = async ({ userId, username, changes }) => {
+  // For demo, pick the first admin from config or env
+  const adminId = process.env.ADMIN_ID || (Array.isArray(process.env.ADMINS) ? process.env.ADMINS[0] : null)
+  if (!adminId) throw new Error('No admin configured for approvals')
+  const requestId = await profileService.createProfileChangeRequest(userId, changes)
+  return notificationService.sendMessage(
+    adminId,
+    `<b>📝 Pending Profile Change Approval</b>\n\nUser: <b>@${username}</b>\nRequested changes: <pre>${JSON.stringify(changes, null, 2)}</pre>\n\nApprove or Reject below:`,
+    Markup.inlineKeyboard([
+      [
+        Markup.button.callback('✅ Approve', `APPROVE_REQ_profile_${requestId}`),
+        Markup.button.callback('❌ Reject', `REJECT_REQ_profile_${requestId}`)
+      ]
+    ])
+  )
+}
+

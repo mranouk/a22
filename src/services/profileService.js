@@ -72,3 +72,16 @@ exports.rejectProfileChange = async (reqId, adminId) => {
   await db.RoleRequest.updateOne({ id: reqId }, { $set: { status: 'rejected', approvedBy: adminId, approvedAt: new Date() } })
   return { userId: req.user }
 }
+
+// Create a profile change request for admin approval
+exports.createProfileChangeRequest = async (userId, changes) => {
+  const req = await db.RoleRequest.create({
+    type: 'profile',
+    user: userId,
+    changes,
+    status: 'pending',
+    logs: [{ at: new Date(), action: 'requested', meta: changes }]
+  })
+  return req._id
+}
+
